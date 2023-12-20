@@ -30,6 +30,38 @@ func Start() {
 	}
 }
 
+func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
+	slog.Info("Handling OMDB Search", "Query", r.URL.Query())
+	q := r.URL.Query()
+	omdbFilters := search.OmdbFilters{
+		S:    q.Get("s"),
+		Type: q.Get("type"),
+		Y:    q.Get("y"),
+	}
+	omdbSearchOpts := search.SearchOptions[search.OmdbFilters]{
+		Query:   q.Get("q"),
+		Page:    1,
+		PerPage: 10,
+		Filters: omdbFilters,
+	}
+
+	omdbSearch := search.NewOmdbSearchService(omdbSearchOpts)
+
+	omdbSearchRes, err := omdbSearch.HandleSearch()
+
+	if err != nil {
+		log.Printf("Error: %+v", err)
+	}
+
+	postSearchJson, err := json.Marshal(omdbSearchRes)
+
+	if err != nil {
+		slog.Error("Error marshalling.", "err", err)
+	}
+
+	w.Write(postSearchJson)
+}
+
 func handleApi(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Handling request", "URL", r.URL.Query())
 	q := r.URL.Query()
