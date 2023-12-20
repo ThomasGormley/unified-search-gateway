@@ -6,7 +6,7 @@ import (
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
 )
 
-func NewPostFilters()
+// func NewPostFilters()
 
 type PostFilters struct {
 	Author      string
@@ -34,7 +34,7 @@ func (pq *PostQueryer) Query(*SearchOptions) ([]models.Post, error) {
 	return make([]models.Post, 10), nil
 }
 
-func NewSearchPostService(opts *SearchOptions) *Search[[]models.Post] {
+func NewPostSearchService(opts *SearchOptions) *Search[[]models.Post] {
 	return &Search[[]models.Post]{
 		Options: opts,
 		Queryer: &PostQueryer{},

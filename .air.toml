@@ -4,9 +4,9 @@ tmp_dir = "tmp"
 
 [build]
   args_bin = []
-  bin = "./bin/kbase"
-  cmd = "go build -o bin/kbase ./cmd/cli/main.go && cp ./bin/kbase ~/go/bin/"
-  delay = 0
+  bin = "./tmp/main"
+  cmd = "go build -o ./tmp/main ."
+  delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []
   exclude_regex = ["_test.go"]
@@ -20,6 +20,8 @@ tmp_dir = "tmp"
   log = "build-errors.log"
   poll = false
   poll_interval = 0
+  post_cmd = []
+  pre_cmd = []
   rerun = false
   rerun_delay = 500
   send_interrupt = false

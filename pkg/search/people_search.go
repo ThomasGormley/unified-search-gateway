@@ -6,8 +6,6 @@ import (
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
 )
 
-func NewPeopleFilters()
-
 type PeopleFilters struct {
 	Author      string
 	Topics      []string

@@ -2,17 +2,12 @@ package search
 
 import (
 	"errors"
-	"fmt"
-	"net/http"
-	"strings"
+	"log/slog"
 )
 
-type FilterValidator interface {
-	validate() error
-}
-
+// SearchFilters is an interface that represents the filters used for searching.
 type SearchFilters interface {
-	FilterValidator
+	validate() error
 }
 
 type SearchOptions struct {
@@ -22,21 +17,17 @@ type SearchOptions struct {
 	Filters SearchFilters
 }
 
-// type Option = func(c *Customer)
-
-// func NewSearchQueryOptions
-
-func (so *SearchOptions) validate() error {
+func (opts *SearchOptions) validate() error {
 	// some pattern for collecting all the errors to send back to client as 400
-	if err := so.Filters.validate(); err != nil {
+	if err := opts.Filters.validate(); err != nil {
+		slog.Info("error validating")
 		return err
 	}
-
-	if so.Page < 0 {
+	if opts.Page < 0 {
 		return errors.New("page must be greater than or equal to 0")
 	}
 
-	if so.PerPage < 0 {
+	if opts.PerPage < 0 {
 		return errors.New("page must be greater than 0")
 	}
 
@@ -46,15 +37,9 @@ func (so *SearchOptions) validate() error {
 type Queryer[T any] interface {
 	Query(*SearchOptions) (T, error)
 }
-
 type Search[T any] struct {
 	Queryer[T]
 	Options *SearchOptions
-}
-
-type SearchResult[T any] struct {
-	Data T
-	Err  error
 }
 
 func (s *Search[T]) HandleSearch() (*T, error) {
@@ -69,38 +54,4 @@ func (s *Search[T]) HandleSearch() (*T, error) {
 	}
 
 	return &resultData, nil
-}
-
-func main(w http.ResponseWriter, r *http.Request) {
-
-	q := r.URL.Query()
-
-	postFilters := &PostFilters{
-		Author:      q.Get("author"),
-		Topics:      strings.Split(q.Get("topic"), ","),
-		PublishedAt: q.Get("publishedAt"),
-		Label:       q.Get("label"),
-		Has:         strings.Split(q.Get("has"), ","),
-		Type:        q.Get("publishedAt"),
-	}
-	searchOptions := &SearchOptions{
-		Query:   q.Get("q"),
-		Page:    1,
-		PerPage: 10,
-		Filters: postFilters,
-	}
-	searchService := NewSearchPostService(searchOptions)
-
-	// searchService := Search[[]models.Post]{
-	// 	Options: searchOptions,
-	// 	Queryer: &PostQueryer{},
-	// }
-
-	res, err := searchService.HandleSearch()
-
-	if err != nil {
-		panic("err")
-	}
-
-	fmt.Printf("Response data: %s", res)
 }
