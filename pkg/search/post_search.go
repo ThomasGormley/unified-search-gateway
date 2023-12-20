@@ -29,14 +29,14 @@ func (pf PostFilters) validate() error {
 
 type PostQueryer struct{}
 
-func (pq *PostQueryer) Query(*SearchOptions) ([]models.Post, error) {
+func (pq PostQueryer) Query(opts SearchOptions[PostFilters]) ([]models.Post, error) {
 	// http request
 	return make([]models.Post, 10), nil
 }
 
-func NewPostSearchService(opts *SearchOptions) *Search[[]models.Post] {
-	return &Search[[]models.Post]{
+func NewPostSearchService(opts SearchOptions[PostFilters]) *Search[[]models.Post, PostFilters] {
+	return &Search[[]models.Post, PostFilters]{
 		Options: opts,
-		Queryer: &PostQueryer{},
+		Queryer: PostQueryer{},
 	}
 }

@@ -18,6 +18,7 @@ func Start() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/search", handleApi)
+	mux.HandleFunc("/api/search/", func(w http.ResponseWriter, r *http.Request) {})
 
 	addr := "localhost:8080" // e.g., "localhost:8080" for local development
 
@@ -33,7 +34,7 @@ func handleApi(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Handling request", "URL", r.URL.Query())
 	q := r.URL.Query()
 
-	postFilters := &search.PostFilters{
+	postFilters := search.PostFilters{
 		Author:      q.Get("author"),
 		Topics:      csv(q.Get("topic")),
 		PublishedAt: q.Get("publishedAt"),
@@ -41,7 +42,7 @@ func handleApi(w http.ResponseWriter, r *http.Request) {
 		Has:         csv(q.Get("has")),
 		Type:        q.Get("publishedAt"),
 	}
-	searchOptions := &search.SearchOptions{
+	searchOptions := search.SearchOptions[search.PostFilters]{
 		Query:   q.Get("q"),
 		Page:    1,
 		PerPage: 10,
