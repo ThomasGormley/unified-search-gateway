@@ -3,7 +3,7 @@ package models
 const (
 	OmdbContentTypeMovie   = "movie"
 	OmdbContentTypeSeries  = "series"
-	OmdbContentTypeEpisode = "Episode"
+	OmdbContentTypeEpisode = "episode"
 )
 
 type Omdb struct {

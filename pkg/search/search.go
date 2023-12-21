@@ -2,7 +2,8 @@ package search
 
 import (
 	"errors"
-	"log/slog"
+	"fmt"
+	"log"
 )
 
 // SearchFilters is an interface that represents the filters used for searching.
@@ -17,7 +18,7 @@ type SearchOptions[F SearchFilters] struct {
 	Filters F
 }
 
-func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters SearchFilters) *SearchOptions[F] {
+func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters SearchFilters) (*SearchOptions[F], error) {
 	// Set default values for page and perPage if they are not within specific ranges
 	if page < 0 {
 		page = 0
@@ -26,18 +27,26 @@ func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters 
 		perPage = 10
 	}
 
-	return &SearchOptions[F]{
+	opts := &SearchOptions[F]{
 		Query:   query,
 		Page:    page,
 		PerPage: perPage,
 		Filters: filters.(F),
 	}
+
+	err := opts.Validate()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return opts, nil
 }
 
-func (opts SearchOptions[F]) validate() error {
+func (opts SearchOptions[F]) Validate() error {
+	log.Printf("Validating options\n")
 	// some pattern for collecting all the errors to send back to client as 400
 	if err := opts.Filters.validate(); err != nil {
-		slog.Info("error validating")
 		return err
 	}
 	if opts.Page < 0 {
@@ -61,14 +70,13 @@ type Search[R any, F SearchFilters] struct {
 
 func (s Search[R, F]) HandleSearch() (*R, error) {
 
-	if err := s.Options.validate(); err != nil {
-		return nil, err
-	}
-
 	resultData, err := s.Queryer.Query(s.Options)
+
 	if err != nil {
 		return nil, err
 	}
+
+	return nil, fmt.Errorf("err")
 
 	return &resultData, nil
 }

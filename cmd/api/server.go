@@ -32,33 +32,52 @@ func Start() {
 	}
 }
 
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+func sendError(w http.ResponseWriter, errorCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(errorCode)
+	resp := ErrorResponse{Error: message}
+	json.NewEncoder(w).Encode(resp)
+}
+
+func sendInternalServerError(w http.ResponseWriter) {
+	sendError(w, http.StatusInternalServerError, "Something went wrong.")
+}
+
 func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Handling OMDB Search", "Query", r.URL.Query())
 	q := r.URL.Query()
 	omdbFilters := search.OmdbFilters{
-		S:    q.Get("s"),
 		Type: q.Get("type"),
-		Y:    q.Get("y"),
-	}
-	omdbSearchOpts := search.SearchOptions[search.OmdbFilters]{
-		Query:   q.Get("q"),
-		Page:    1,
-		PerPage: 10,
-		Filters: omdbFilters,
+		Y:    q.Get("year"),
 	}
 
-	omdbSearch := search.NewOmdbSearchService(omdbSearchOpts)
+	omdbSearchOpts, err := search.NewSearchOptions[search.OmdbFilters](q.Get("q"), 1, 10, omdbFilters)
+
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	omdbSearch := search.NewOmdbSearchService(*omdbSearchOpts)
 
 	omdbSearchRes, err := omdbSearch.HandleSearch()
 
 	if err != nil {
 		log.Printf("Error: %+v", err)
+		sendInternalServerError(w)
+		return
 	}
 
 	postSearchJson, err := json.Marshal(omdbSearchRes)
 
 	if err != nil {
 		slog.Error("Error marshalling.", "err", err)
+		sendInternalServerError(w)
+		return
 	}
 
 	w.Write(postSearchJson)

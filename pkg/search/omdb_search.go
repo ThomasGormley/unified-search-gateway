@@ -2,7 +2,7 @@ package search
 
 import (
 	"fmt"
-	"log/slog"
+	"log"
 
 	"github.com/thomasgormley/unified-search-gateway/pkg/httpclient"
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
@@ -14,25 +14,25 @@ import (
 // Type represents the content type to return.
 // Y represents the year of release.
 type OmdbFilters struct {
-	S    string
 	Type string
 	Y    string
 }
 
-func (f OmdbFilters) isValidContentType() bool {
+func (f OmdbFilters) isValidContentType() error {
+	log.Printf("filter.type: %s", f.Type)
 	switch f.Type {
 	case models.OmdbContentTypeMovie, models.OmdbContentTypeEpisode, models.OmdbContentTypeSeries:
-		return true
+		return nil
 	default:
-		return false
+		return fmt.Errorf("filter type must be one of: %s, %s, %s", models.OmdbContentTypeMovie, models.OmdbContentTypeSeries, models.OmdbContentTypeEpisode)
 	}
 }
 
 func (filters OmdbFilters) validate() error {
-	if !filters.isValidContentType() {
-		return fmt.Errorf("filter type must be one of: %s, %s, %s", models.OmdbContentTypeMovie, models.OmdbContentTypeSeries, models.OmdbContentTypeEpisode)
-	}
 
+	if err := filters.isValidContentType(); err != nil {
+		return err
+	}
 	// validation logic for OmdbFilters
 	return nil
 }
@@ -42,8 +42,6 @@ type OmdbQueryer struct{}
 func (OmdbQueryer) Query(opts SearchOptions[OmdbFilters]) ([]models.Omdb, error) {
 	omdbClient := httpclient.NewOmdb()
 	resp, err := omdbClient.Search(opts.Query, opts.Filters.Type, opts.Filters.Y)
-
-	slog.Info("Queryed OMDB:", "data", resp)
 
 	if err != nil {
 		return nil, err
