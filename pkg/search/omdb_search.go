@@ -2,7 +2,9 @@ package search
 
 import (
 	"fmt"
+	"log/slog"
 
+	"github.com/thomasgormley/unified-search-gateway/pkg/httpclient"
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
 )
 
@@ -38,8 +40,16 @@ func (filters OmdbFilters) validate() error {
 type OmdbQueryer struct{}
 
 func (OmdbQueryer) Query(opts SearchOptions[OmdbFilters]) ([]models.Omdb, error) {
-	// http request
-	return make([]models.Omdb, 10), nil
+	omdbClient := httpclient.NewOmdb()
+	resp, err := omdbClient.Search(opts.Query, opts.Filters.Type, opts.Filters.Y)
+
+	slog.Info("Queryed OMDB:", "data", resp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func NewOmdbSearchService(opts SearchOptions[OmdbFilters]) *Search[[]models.Omdb, OmdbFilters] {

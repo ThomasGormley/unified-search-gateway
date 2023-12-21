@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/thomasgormley/unified-search-gateway/internal/configuration"
 	"github.com/thomasgormley/unified-search-gateway/pkg/search"
 )
 
@@ -15,10 +16,11 @@ func csv(s string) []string {
 }
 
 func Start() {
+	configuration.Load()
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/search", handleApi)
-	mux.HandleFunc("/api/search/", func(w http.ResponseWriter, r *http.Request) {})
+	mux.HandleFunc("/api/search/omdb", handleOmdbSearch)
 
 	addr := "localhost:8080" // e.g., "localhost:8080" for local development
 
