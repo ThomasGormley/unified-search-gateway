@@ -19,7 +19,7 @@ func Start() {
 	configuration.Load()
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/search", handleApi)
+	// mux.HandleFunc("/api/search", handleApi)
 	mux.HandleFunc("/api/search/omdb", handleOmdbSearch)
 
 	addr := "localhost:8080" // e.g., "localhost:8080" for local development
@@ -83,36 +83,36 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 	w.Write(postSearchJson)
 }
 
-func handleApi(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Handling request", "URL", r.URL.Query())
-	q := r.URL.Query()
+// func handleApi(w http.ResponseWriter, r *http.Request) {
+// 	slog.Info("Handling request", "URL", r.URL.Query())
+// 	q := r.URL.Query()
 
-	postFilters := search.PostFilters{
-		Author:      q.Get("author"),
-		Topics:      csv(q.Get("topic")),
-		PublishedAt: q.Get("publishedAt"),
-		Label:       q.Get("label"),
-		Has:         csv(q.Get("has")),
-		Type:        q.Get("publishedAt"),
-	}
-	searchOptions := search.SearchOptions[search.PostFilters]{
-		Query:   q.Get("q"),
-		Page:    1,
-		PerPage: 10,
-		Filters: postFilters,
-	}
-	postSearch := search.NewPostSearchService(searchOptions)
+// 	postFilters := search.PostFilters{
+// 		Author:      q.Get("author"),
+// 		Topics:      csv(q.Get("topic")),
+// 		PublishedAt: q.Get("publishedAt"),
+// 		Label:       q.Get("label"),
+// 		Has:         csv(q.Get("has")),
+// 		Type:        q.Get("publishedAt"),
+// 	}
+// 	searchOptions := search.SearchOptions[search.PostFilters]{
+// 		Query:   q.Get("q"),
+// 		Page:    1,
+// 		PerPage: 10,
+// 		Filters: postFilters,
+// 	}
+// 	postSearch := search.NewPostSearchService(searchOptions)
 
-	postSearchRes, err := postSearch.HandleSearch()
+// 	postSearchRes, err := postSearch.HandleSearch()
 
-	if err != nil {
-		log.Printf("Error: %+v", err)
-	}
+// 	if err != nil {
+// 		log.Printf("Error: %+v", err)
+// 	}
 
-	postSearchJson, err := json.Marshal(postSearchRes)
+// 	postSearchJson, err := json.Marshal(postSearchRes)
 
-	if err != nil {
-		slog.Error("Error marshalling.", "err", err)
-	}
-	w.Write(postSearchJson)
-}
+// 	if err != nil {
+// 		slog.Error("Error marshalling.", "err", err)
+// 	}
+// 	w.Write(postSearchJson)
+// }

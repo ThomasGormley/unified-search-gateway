@@ -2,13 +2,12 @@ package search
 
 import (
 	"errors"
-	"fmt"
 	"log"
 )
 
 // SearchFilters is an interface that represents the filters used for searching.
 type SearchFilters interface {
-	validate() error
+	Validate() error
 }
 
 type SearchOptions[F SearchFilters] struct {
@@ -46,7 +45,7 @@ func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters 
 func (opts SearchOptions[F]) Validate() error {
 	log.Printf("Validating options\n")
 	// some pattern for collecting all the errors to send back to client as 400
-	if err := opts.Filters.validate(); err != nil {
+	if err := opts.Filters.Validate(); err != nil {
 		return err
 	}
 	if opts.Page < 0 {
@@ -75,8 +74,6 @@ func (s Search[R, F]) HandleSearch() (*R, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return nil, fmt.Errorf("err")
 
 	return &resultData, nil
 }

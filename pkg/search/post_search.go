@@ -19,7 +19,7 @@ type PostFilters struct {
 	Type string
 }
 
-func (pf PostFilters) validate() error {
+func (pf PostFilters) Validate() error {
 	if pf.Author == "" {
 		return fmt.Errorf("author cannot be empty")
 	}

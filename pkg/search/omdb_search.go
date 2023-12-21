@@ -28,7 +28,7 @@ func (f OmdbFilters) isValidContentType() error {
 	}
 }
 
-func (filters OmdbFilters) validate() error {
+func (filters OmdbFilters) Validate() error {
 
 	if err := filters.isValidContentType(); err != nil {
 		return err
