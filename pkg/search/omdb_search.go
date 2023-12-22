@@ -21,7 +21,7 @@ type OmdbFilters struct {
 func (f OmdbFilters) isValidContentType() error {
 	log.Printf("filter.type: %s", f.Type)
 	switch f.Type {
-	case models.OmdbContentTypeMovie, models.OmdbContentTypeEpisode, models.OmdbContentTypeSeries:
+	case models.OmdbContentTypeMovie, models.OmdbContentTypeEpisode, models.OmdbContentTypeSeries, "":
 		return nil
 	default:
 		return fmt.Errorf("filter type must be one of: %s, %s, %s", models.OmdbContentTypeMovie, models.OmdbContentTypeSeries, models.OmdbContentTypeEpisode)
@@ -39,6 +39,20 @@ func (filters OmdbFilters) Validate() error {
 
 type OmdbQueryer struct {
 	SearchOptions[OmdbFilters]
+}
+
+func OmdbQuery(searchOptions SearchOptions[OmdbFilters]) (SearchItem, error) {
+	omdbClient := httpclient.NewOmdb()
+	resp, err := omdbClient.Search(searchOptions.Query, searchOptions.Filters.Type, searchOptions.Filters.Y)
+
+	if err != nil {
+		return ResultSet[models.Omdb]{}, err
+	}
+
+	return ResultSet[models.Omdb]{
+		Data: resp,
+		Type: "omdb",
+	}, nil
 }
 
 func (o OmdbQueryer) Query() (SearchItem, error) {

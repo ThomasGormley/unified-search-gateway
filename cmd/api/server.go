@@ -66,9 +66,7 @@ func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
 		SearchOptions: *postSearchOptions,
 	}
 
-	unifiedSearch := search.NewSearchService(omdbQueryer, postQueryer)
-
-	unifiedSearchRes, err := unifiedSearch.HandleSearch()
+	unifiedSearchRes, err := search.HandleSearch(omdbQueryer, postQueryer)
 
 	if err != nil {
 		log.Printf("Error: %+v", err)
@@ -77,6 +75,12 @@ func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postSearchJson, err := json.Marshal(unifiedSearchRes)
+
+	if err != nil {
+		log.Printf("Error: %+v", err)
+		sendInternalServerError(w)
+		return
+	}
 
 	w.Write(postSearchJson)
 }
@@ -100,9 +104,7 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 		SearchOptions: *omdbSearchOpts,
 	}
 
-	omdbAndPostService := search.NewSearchService(omdbQueryer)
-
-	omdbAndPostSearchRes, err := omdbAndPostService.HandleSearch()
+	omdbSearchRes, err := search.HandleSearch(omdbQueryer)
 
 	if err != nil {
 		log.Printf("Error: %+v", err)
@@ -110,7 +112,7 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postSearchJson, err := json.Marshal(omdbAndPostSearchRes)
+	postSearchJson, err := json.Marshal(omdbSearchRes)
 
 	if err != nil {
 		slog.Error("Error marshalling.", "err", err)

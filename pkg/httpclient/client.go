@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -42,7 +43,7 @@ func (c Client) withBaseUrl(path string) string {
 // TODO allow passing opts on the fly
 func (c Client) Get(ctx context.Context, path string) (*Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.withBaseUrl(path), nil)
-
+	log.Printf("URL: %s", req.URL.String())
 	if err != nil {
 		return nil, err
 	}

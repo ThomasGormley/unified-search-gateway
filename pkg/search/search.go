@@ -39,12 +39,6 @@ type (
 	Queryer[Return SearchItem] interface {
 		Query() (Return, error)
 	}
-
-	// SearchService is a struct that represents a search service.
-	// It contains a list of queryers that can be used to perform search queries.
-	SearchService[R SearchItem] struct {
-		Queriers []Queryer[R]
-	}
 )
 
 func (qr ResultSet[T]) GetType() string {
@@ -93,15 +87,9 @@ func (opts SearchOptions[F]) Validate() error {
 	return nil
 }
 
-func NewSearchService[R SearchItem](queriers ...Queryer[R]) *SearchService[R] {
-	return &SearchService[R]{
-		Queriers: queriers,
-	}
-}
-
-func (s SearchService[R]) HandleSearch() ([]R, error) {
+func HandleSearch[R SearchItem](qs ...Queryer[R]) ([]R, error) {
 	var aggregatedData []R
-	for _, queryer := range s.Queriers {
+	for _, queryer := range qs {
 		data, err := queryer.Query()
 		if err != nil {
 			return nil, err
