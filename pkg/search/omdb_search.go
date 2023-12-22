@@ -37,22 +37,20 @@ func (filters OmdbFilters) Validate() error {
 	return nil
 }
 
-type OmdbQueryer struct{}
-
-func (OmdbQueryer) Query(opts SearchOptions[OmdbFilters]) ([]models.Omdb, error) {
-	omdbClient := httpclient.NewOmdb()
-	resp, err := omdbClient.Search(opts.Query, opts.Filters.Type, opts.Filters.Y)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+type OmdbQueryer struct {
+	SearchOptions[OmdbFilters]
 }
 
-func NewOmdbSearchService(opts SearchOptions[OmdbFilters]) *Search[[]models.Omdb, OmdbFilters] {
-	return &Search[[]models.Omdb, OmdbFilters]{
-		Options: opts,
-		Queryer: OmdbQueryer{},
+func (o OmdbQueryer) Query() (SearchableResource, error) {
+	omdbClient := httpclient.NewOmdb()
+	resp, err := omdbClient.Search(o.SearchOptions.Query, o.SearchOptions.Filters.Type, o.SearchOptions.Filters.Y)
+
+	if err != nil {
+		return QueryResult[models.Omdb]{}, err
 	}
+
+	return QueryResult[models.Omdb]{
+		Data: resp,
+		Type: "omdb",
+	}, nil
 }

@@ -55,16 +55,37 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 		Y:    q.Get("year"),
 	}
 
-	omdbSearchOpts, err := search.NewSearchOptions[search.OmdbFilters](q.Get("q"), 1, 10, omdbFilters)
+	omdbSearchOpts, err := search.NewSearchOptions(q.Get("q"), 1, 10, omdbFilters)
 
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	omdbSearch := search.NewOmdbSearchService(*omdbSearchOpts)
+	omdbQueryer := search.OmdbQueryer{
+		SearchOptions: *omdbSearchOpts,
+	}
 
-	omdbSearchRes, err := omdbSearch.HandleSearch()
+	// omdbSearch := search.NewSearch(omdbQueryer)
+
+	searchOptions := search.SearchOptions[search.PostFilters]{
+		Query:   q.Get("q"),
+		Page:    1,
+		PerPage: 10,
+		Filters: search.PostFilters{},
+	}
+
+	postQueryer := search.PostQueryer{
+		SearchOptions: searchOptions,
+	}
+
+	// omdbService := search.NewSearch(omdbQueryer)
+	// searchRes is a slice of Omdb structs
+	// searchRes, err := omdbService.HandleSearch()
+
+	omdbAndPostService := search.NewSearch(omdbQueryer, postQueryer)
+
+	omdbAndPostSearchRes, err := omdbAndPostService.HandleSearch()
 
 	if err != nil {
 		log.Printf("Error: %+v", err)
@@ -72,7 +93,7 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postSearchJson, err := json.Marshal(omdbSearchRes)
+	postSearchJson, err := json.Marshal(omdbAndPostSearchRes)
 
 	if err != nil {
 		slog.Error("Error marshalling.", "err", err)

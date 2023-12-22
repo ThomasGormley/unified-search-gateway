@@ -5,19 +5,41 @@ import (
 	"log"
 )
 
-// SearchFilters is an interface that represents the filters used for searching.
-type SearchFilters interface {
-	Validate() error
+type (
+	// SearchFilters is an interface that represents the filters used for searching.
+	SearchFilters interface {
+		Validate() error
+	}
+
+	QueryResult[T any] struct {
+		Data []T    `json:"data"`
+		Type string `json:"type"`
+	}
+
+	SearchableResource interface {
+		GetType() string
+	}
+
+	SearchOptions[F SearchFilters] struct {
+		Query   string
+		Page    int
+		PerPage int
+		Filters F
+	}
+
+	Queryer[QueryR SearchableResource] interface {
+		Query() (QueryR, error)
+	}
+	Search[R SearchableResource] struct {
+		Queriers []Queryer[R]
+	}
+)
+
+func (qr QueryResult[T]) GetType() string {
+	return qr.Type
 }
 
-type SearchOptions[F SearchFilters] struct {
-	Query   string
-	Page    int
-	PerPage int
-	Filters F
-}
-
-func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters SearchFilters) (*SearchOptions[F], error) {
+func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters F) (*SearchOptions[F], error) {
 	// Set default values for page and perPage if they are not within specific ranges
 	if page < 0 {
 		page = 0
@@ -30,7 +52,7 @@ func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters 
 		Query:   query,
 		Page:    page,
 		PerPage: perPage,
-		Filters: filters.(F),
+		Filters: filters,
 	}
 
 	err := opts.Validate()
@@ -59,21 +81,22 @@ func (opts SearchOptions[F]) Validate() error {
 	return nil
 }
 
-type Queryer[R any, F SearchFilters] interface {
-	Query(SearchOptions[F]) (R, error)
-}
-type Search[R any, F SearchFilters] struct {
-	Queryer[R, F]
-	Options SearchOptions[F]
+func NewSearch[R SearchableResource](queriers ...Queryer[R]) *Search[R] {
+	return &Search[R]{
+		Queriers: queriers,
+	}
 }
 
-func (s Search[R, F]) HandleSearch() (*R, error) {
+func (s Search[R]) HandleSearch() ([]R, error) {
+	var aggregatedData []R
 
-	resultData, err := s.Queryer.Query(s.Options)
-
-	if err != nil {
-		return nil, err
+	for _, queryer := range s.Queriers {
+		data, err := queryer.Query()
+		if err != nil {
+			return nil, err
+		}
+		aggregatedData = append(aggregatedData, data)
 	}
 
-	return &resultData, nil
+	return aggregatedData, nil
 }

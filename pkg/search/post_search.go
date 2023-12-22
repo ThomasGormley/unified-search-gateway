@@ -27,16 +27,15 @@ func (pf PostFilters) Validate() error {
 	return nil
 }
 
-type PostQueryer struct{}
-
-func (pq PostQueryer) Query(opts SearchOptions[PostFilters]) ([]models.Post, error) {
-	// http request
-	return make([]models.Post, 10), nil
+type PostQueryer struct {
+	SearchOptions[PostFilters]
 }
 
-func NewPostSearchService(opts SearchOptions[PostFilters]) *Search[[]models.Post, PostFilters] {
-	return &Search[[]models.Post, PostFilters]{
-		Options: opts,
-		Queryer: PostQueryer{},
-	}
+func (pq PostQueryer) Query() (SearchableResource, error) {
+	// http request
+	return QueryResult[models.Post]{
+		Data: []models.Post{},
+		Type: "post",
+	}, nil
+
 }
