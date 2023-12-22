@@ -17,6 +17,23 @@ type OmdbClient struct {
 	BaseUrl    string
 }
 
+// For stubbing
+type RoundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (fn RoundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return fn(r)
+}
+
+var mockOmdbClient = OmdbClient{
+	HttpClient: &http.Client{
+		Transport: RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			// Assert on request attributes
+			// Return a response or error you want
+			return &http.Response{}, nil
+		}),
+	},
+}
+
 func NewOmdb() OmdbClient {
 
 	httpClient := &http.Client{Timeout: DEFAULT_TIMEOUT}
@@ -56,6 +73,11 @@ func (client *OmdbClient) Search(title string, contentType string, releaseYear s
 
 	if err != nil {
 		return nil, err
+	}
+	fmt.Printf("status: %d, mod: %d", resp.StatusCode, resp.StatusCode/100)
+	switch resp.StatusCode / 100 {
+	case 4, 5:
+		return nil, fmt.Errorf("HTTP error: %s", resp.Status)
 	}
 
 	var omdbRespJson searchResponse
