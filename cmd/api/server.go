@@ -100,24 +100,7 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 		SearchOptions: *omdbSearchOpts,
 	}
 
-	// omdbSearch := search.NewSearch(omdbQueryer)
-
-	searchOptions, err := search.NewSearchOptions(q.Get("q"), 1, 10, search.PostFilters{})
-
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	postQueryer := search.PostQueryer{
-		SearchOptions: *searchOptions,
-	}
-
-	// omdbService := search.NewSearch(omdbQueryer)
-	// searchRes is a slice of Omdb structs
-	// searchRes, err := omdbService.HandleSearch()
-
-	omdbAndPostService := search.NewSearchService(omdbQueryer, postQueryer)
+	omdbAndPostService := search.NewSearchService(omdbQueryer)
 
 	omdbAndPostSearchRes, err := omdbAndPostService.HandleSearch()
 
