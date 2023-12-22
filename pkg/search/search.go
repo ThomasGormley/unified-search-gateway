@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"strconv"
+	"sync"
 )
 
 type (
@@ -48,14 +49,22 @@ func (qr ResultSet[T]) GetType() string {
 
 func NewSearchOptions[F FilterCriteria](query string, p, pPage string, filters F) (*SearchOptions[F], error) {
 	// convert page and perPage to int
-	page, err := strconv.Atoi(p)
-	if err != nil {
-		return nil, err
+	page := 0
+	if p != "" {
+		var err error
+		page, err = strconv.Atoi(p)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	perPage, err := strconv.Atoi(pPage)
-	if err != nil {
-		return nil, err
+	perPage := 10
+	if pPage != "" {
+		var err error
+		perPage, err = strconv.Atoi(pPage)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Set default values for page and perPage if they are not within specific ranges
@@ -73,7 +82,7 @@ func NewSearchOptions[F FilterCriteria](query string, p, pPage string, filters F
 		Filters: filters,
 	}
 
-	err = opts.Validate()
+	err := opts.Validate()
 
 	if err != nil {
 		return nil, err
@@ -100,13 +109,56 @@ func (opts SearchOptions[F]) Validate() error {
 }
 
 func HandleSearch[R SearchItem](qs ...Queryer[R]) ([]R, error) {
-	var aggregatedData []R
+	resultsChan := make(chan *R)
+	errChan := make(chan error)
+	var wg sync.WaitGroup
+
 	for _, queryer := range qs {
-		data, err := queryer.Query()
-		if err != nil {
-			return nil, err
+		wg.Add(1)
+		go func(q Queryer[R]) {
+			defer wg.Done()
+			data, err := q.Query()
+			if err != nil {
+				errChan <- err
+				resultsChan <- nil // Send nil for failed query
+			} else {
+				resultsChan <- &data
+			}
+		}(queryer)
+	}
+
+	// Close channels when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+		close(errChan)
+	}()
+
+	var aggregatedData []R
+	var errors []error
+	for {
+		select {
+		case data, ok := <-resultsChan:
+			if !ok {
+				resultsChan = nil
+			} else if data != nil {
+				aggregatedData = append(aggregatedData, *data)
+			}
+		case err, ok := <-errChan:
+			if !ok {
+				errChan = nil
+			} else {
+				errors = append(errors, err)
+			}
 		}
-		aggregatedData = append(aggregatedData, data)
+		if resultsChan == nil && errChan == nil {
+			break
+		}
+	}
+
+	// Handle the case where all queries failed
+	if len(aggregatedData) == 0 && len(errors) > 0 {
+		return nil, errors[0] // or aggregate errors as needed
 	}
 
 	return aggregatedData, nil
