@@ -16,16 +16,16 @@ func WithCustomHttpClient(client *http.Client) ClientOption {
 	}
 }
 
-func WithDefaultHeaders() ClientOption {
-	return func(c *Client) {
-		if c.headers == nil {
-			c.headers = make(map[string]Header)
-		}
+// func WithDefaultHeaders() ClientOption {
+// 	return func(c *Client) {
+// 		if c.headers == nil {
+// 			c.headers = make(map[string]Header)
+// 		}
 
-		c.headers["Content-Type"] = Header{Value: "application/json", IsDefault: true}
-		c.headers["Accept"] = Header{Value: "application/json", IsDefault: true}
-	}
-}
+// 		c.headers["Content-Type"] = Header{Value: "application/json", IsDefault: true}
+// 		c.headers["Accept"] = Header{Value: "application/json", IsDefault: true}
+// 	}
+// }
 
 func WithTimeout(timeout time.Duration) ClientOption {
 	return func(c *Client) {
@@ -34,28 +34,28 @@ func WithTimeout(timeout time.Duration) ClientOption {
 	}
 }
 
-func WithHeader(key, value string) Option {
-	return func(c *Client) {
-		if c.headers == nil {
-			c.headers = make(map[string]Header)
-		}
+// func WithHeader(key, value string) Option {
+// 	return func(c *Client) {
+// 		if c.headers == nil {
+// 			c.headers = make(map[string]Header)
+// 		}
 
-		c.headers[key] = Header{Value: value, IsDefault: false}
-	}
-}
+// 		c.headers[key] = Header{Value: value, IsDefault: false}
+// 	}
+// }
 
-func WithQuery(key, value string) Option {
-	return func(c *Client) {
-		if c.query == nil {
-			c.query = make(map[string]string)
-		}
+// func WithQuery(key, value string) Option {
+// 	return func(c *Client) {
+// 		if c.query == nil {
+// 			c.query = make(map[string]string)
+// 		}
 
-		c.query[key] = value
-	}
-}
+// 		c.query[key] = value
+// 	}
+// }
 
-func WithBody(body []byte) Option {
-	return func(c *Client) {
-		c.body = body
-	}
-}
+// func WithBody(body []byte) Option {
+// 	return func(c *Client) {
+// 		c.body = body
+// 	}
+// }
