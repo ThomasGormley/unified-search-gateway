@@ -5,7 +5,8 @@ import (
 	"log"
 )
 
-type ( // FilterCriteria is an interface that defines the behavior of filter criteria used in search operations.
+type (
+	// FilterCriteria is an interface that defines the behavior of filter criteria used in search operations.
 	// Implementations of this interface must provide a Validate method that validates the filter criteria.
 	FilterCriteria interface {
 		Validate() error
@@ -18,9 +19,9 @@ type ( // FilterCriteria is an interface that defines the behavior of filter cri
 		Type string `json:"type"`
 	}
 
-	// Identifiable is an interface that represents a resource that can be searched.
+	// SearchItem is an interface that represents a resource that can be searched.
 	// Implementations of this interface must provide a GetType method that returns the type of the resource.
-	Identifiable interface {
+	SearchItem interface {
 		GetType() string
 	}
 
@@ -35,13 +36,13 @@ type ( // FilterCriteria is an interface that defines the behavior of filter cri
 
 	// Queryer is an interface that represents a search query.
 	// Implementations of this interface must provide a Query method that performs the search query and returns the result.
-	Queryer[QueryR Identifiable] interface {
-		Query() (QueryR, error)
+	Queryer[Return SearchItem] interface {
+		Query() (Return, error)
 	}
 
 	// SearchService is a struct that represents a search service.
 	// It contains a list of queryers that can be used to perform search queries.
-	SearchService[R Identifiable] struct {
+	SearchService[R SearchItem] struct {
 		Queriers []Queryer[R]
 	}
 )
@@ -92,7 +93,7 @@ func (opts SearchOptions[F]) Validate() error {
 	return nil
 }
 
-func NewSearchService[R Identifiable](queriers ...Queryer[R]) *SearchService[R] {
+func NewSearchService[R SearchItem](queriers ...Queryer[R]) *SearchService[R] {
 	return &SearchService[R]{
 		Queriers: queriers,
 	}

@@ -41,7 +41,7 @@ type OmdbQueryer struct {
 	SearchOptions[OmdbFilters]
 }
 
-func (o OmdbQueryer) Query() (Identifiable, error) {
+func (o OmdbQueryer) Query() (SearchItem, error) {
 	omdbClient := httpclient.NewOmdb()
 	resp, err := omdbClient.Search(o.SearchOptions.Query, o.SearchOptions.Filters.Type, o.SearchOptions.Filters.Y)
 

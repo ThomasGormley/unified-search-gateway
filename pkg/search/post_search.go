@@ -1,8 +1,6 @@
 package search
 
 import (
-	"fmt"
-
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
 )
 
@@ -20,9 +18,6 @@ type PostFilters struct {
 }
 
 func (pf PostFilters) Validate() error {
-	if pf.Author == "" {
-		return fmt.Errorf("author cannot be empty")
-	}
 	// validation logic for PostFilters
 	return nil
 }
@@ -31,7 +26,7 @@ type PostQueryer struct {
 	SearchOptions[PostFilters]
 }
 
-func (pq PostQueryer) Query() (Identifiable, error) {
+func (pq PostQueryer) Query() (SearchItem, error) {
 	// http request
 	return ResultSet[models.Post]{
 		Data: []models.Post{},

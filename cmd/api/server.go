@@ -14,7 +14,7 @@ func Start() {
 	configuration.Load()
 	mux := http.NewServeMux()
 
-	// mux.HandleFunc("/api/search", handleApi)
+	mux.HandleFunc("/api/search", handleUnifiedSearch)
 	mux.HandleFunc("/api/search/omdb", handleOmdbSearch)
 
 	addr := "localhost:8080" // e.g., "localhost:8080" for local development
@@ -40,6 +40,45 @@ func sendError(w http.ResponseWriter, errorCode int, message string) {
 
 func sendInternalServerError(w http.ResponseWriter) {
 	sendError(w, http.StatusInternalServerError, "Something went wrong.")
+}
+
+func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
+	slog.Info("Handling Unified Search", "Query", r.URL.Query())
+	q := r.URL.Query()
+
+	omdbSearchOptions, err := search.NewSearchOptions(q.Get("q"), 1, 10, search.OmdbFilters{})
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	omdbQueryer := search.OmdbQueryer{
+		SearchOptions: *omdbSearchOptions,
+	}
+
+	postSearchOptions, err := search.NewSearchOptions(q.Get("q"), 1, 10, search.PostFilters{})
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	postQueryer := search.PostQueryer{
+		SearchOptions: *postSearchOptions,
+	}
+
+	unifiedSearch := search.NewSearchService(omdbQueryer, postQueryer)
+
+	unifiedSearchRes, err := unifiedSearch.HandleSearch()
+
+	if err != nil {
+		log.Printf("Error: %+v", err)
+		sendInternalServerError(w)
+		return
+	}
+
+	postSearchJson, err := json.Marshal(unifiedSearchRes)
+
+	w.Write(postSearchJson)
 }
 
 func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
