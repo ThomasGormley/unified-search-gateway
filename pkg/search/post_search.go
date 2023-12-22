@@ -31,9 +31,9 @@ type PostQueryer struct {
 	SearchOptions[PostFilters]
 }
 
-func (pq PostQueryer) Query() (SearchableResource, error) {
+func (pq PostQueryer) Query() (Identifiable, error) {
 	// http request
-	return QueryResult[models.Post]{
+	return ResultSet[models.Post]{
 		Data: []models.Post{},
 		Type: "post",
 	}, nil

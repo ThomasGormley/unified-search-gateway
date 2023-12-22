@@ -5,41 +5,51 @@ import (
 	"log"
 )
 
-type (
-	// SearchFilters is an interface that represents the filters used for searching.
-	SearchFilters interface {
-		Validate() error
-	}
+// FilterCriteria is an interface that defines the behavior of filter criteria used in search operations.
+// Implementations of this interface must provide a Validate method that validates the filter criteria.
+type FilterCriteria interface {
+	Validate() error
+}
 
-	QueryResult[T any] struct {
-		Data []T    `json:"data"`
-		Type string `json:"type"`
-	}
+// ResultSet is a generic struct that represents the result set of a search operation.
+// It contains a slice of data of type T and a string representing the type of the data.
+type ResultSet[T any] struct {
+	Data []T    `json:"data"`
+	Type string `json:"type"`
+}
 
-	SearchableResource interface {
-		GetType() string
-	}
+// Identifiable is an interface that represents a resource that can be searched.
+// Implementations of this interface must provide a GetType method that returns the type of the resource.
+type Identifiable interface {
+	GetType() string
+}
 
-	SearchOptions[F SearchFilters] struct {
-		Query   string
-		Page    int
-		PerPage int
-		Filters F
-	}
+// SearchOptions is a struct that represents the options passed to a search function.
+// It contains the search query, page number, items per page, and filter criteria.
+type SearchOptions[F FilterCriteria] struct {
+	Query   string
+	Page    int
+	PerPage int
+	Filters F
+}
 
-	Queryer[QueryR SearchableResource] interface {
-		Query() (QueryR, error)
-	}
-	Search[R SearchableResource] struct {
-		Queriers []Queryer[R]
-	}
-)
+// Queryer is an interface that represents a search query.
+// Implementations of this interface must provide a Query method that performs the search query and returns the result.
+type Queryer[QueryR Identifiable] interface {
+	Query() (QueryR, error)
+}
 
-func (qr QueryResult[T]) GetType() string {
+// SearchService is a struct that represents a search service.
+// It contains a list of queryers that can be used to perform search queries.
+type SearchService[R Identifiable] struct {
+	Queriers []Queryer[R]
+}
+
+func (qr ResultSet[T]) GetType() string {
 	return qr.Type
 }
 
-func NewSearchOptions[F SearchFilters](query string, page, perPage int, filters F) (*SearchOptions[F], error) {
+func NewSearchOptions[F FilterCriteria](query string, page, perPage int, filters F) (*SearchOptions[F], error) {
 	// Set default values for page and perPage if they are not within specific ranges
 	if page < 0 {
 		page = 0
@@ -81,15 +91,14 @@ func (opts SearchOptions[F]) Validate() error {
 	return nil
 }
 
-func NewSearch[R SearchableResource](queriers ...Queryer[R]) *Search[R] {
-	return &Search[R]{
+func NewSearchService[R Identifiable](queriers ...Queryer[R]) *SearchService[R] {
+	return &SearchService[R]{
 		Queriers: queriers,
 	}
 }
 
-func (s Search[R]) HandleSearch() ([]R, error) {
+func (s SearchService[R]) HandleSearch() ([]R, error) {
 	var aggregatedData []R
-
 	for _, queryer := range s.Queriers {
 		data, err := queryer.Query()
 		if err != nil {

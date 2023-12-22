@@ -41,15 +41,15 @@ type OmdbQueryer struct {
 	SearchOptions[OmdbFilters]
 }
 
-func (o OmdbQueryer) Query() (SearchableResource, error) {
+func (o OmdbQueryer) Query() (Identifiable, error) {
 	omdbClient := httpclient.NewOmdb()
 	resp, err := omdbClient.Search(o.SearchOptions.Query, o.SearchOptions.Filters.Type, o.SearchOptions.Filters.Y)
 
 	if err != nil {
-		return QueryResult[models.Omdb]{}, err
+		return ResultSet[models.Omdb]{}, err
 	}
 
-	return QueryResult[models.Omdb]{
+	return ResultSet[models.Omdb]{
 		Data: resp,
 		Type: "omdb",
 	}, nil

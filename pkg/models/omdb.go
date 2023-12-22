@@ -36,7 +36,3 @@ type Omdb struct {
 	Website    string `json:"Website"`
 	Response   string `json:"Response"`
 }
-
-func (o Omdb) GetType() string {
-	return "omdb"
-}

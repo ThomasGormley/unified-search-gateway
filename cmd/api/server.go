@@ -5,15 +5,10 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/thomasgormley/unified-search-gateway/internal/configuration"
 	"github.com/thomasgormley/unified-search-gateway/pkg/search"
 )
-
-func csv(s string) []string {
-	return strings.Split(s, ",")
-}
 
 func Start() {
 	configuration.Load()
@@ -68,22 +63,22 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 
 	// omdbSearch := search.NewSearch(omdbQueryer)
 
-	searchOptions := search.SearchOptions[search.PostFilters]{
-		Query:   q.Get("q"),
-		Page:    1,
-		PerPage: 10,
-		Filters: search.PostFilters{},
+	searchOptions, err := search.NewSearchOptions(q.Get("q"), 1, 10, search.PostFilters{})
+
+	if err != nil {
+		sendError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	postQueryer := search.PostQueryer{
-		SearchOptions: searchOptions,
+		SearchOptions: *searchOptions,
 	}
 
 	// omdbService := search.NewSearch(omdbQueryer)
 	// searchRes is a slice of Omdb structs
 	// searchRes, err := omdbService.HandleSearch()
 
-	omdbAndPostService := search.NewSearch(omdbQueryer, postQueryer)
+	omdbAndPostService := search.NewSearchService(omdbQueryer, postQueryer)
 
 	omdbAndPostSearchRes, err := omdbAndPostService.HandleSearch()
 
