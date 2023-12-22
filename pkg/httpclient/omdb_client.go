@@ -18,20 +18,20 @@ type OmdbClient struct {
 }
 
 type Omdb struct {
-	Client *Client
+	client *Client
 }
 
 func NewOmdb() *Omdb {
 
 	httpClient := New("https://www.omdbapi.com", WithTimeout(10*time.Second))
-	return &Omdb{Client: httpClient}
+	return &Omdb{client: httpClient}
 }
 
 type SearchResponse struct {
 	Search []models.Omdb `json:"Search"`
 }
 
-func (c *Omdb) Search(title string, contentType string, releaseYear string) ([]models.Omdb, error) {
+func (oc *Omdb) Search(title string, contentType string, releaseYear string) ([]models.Omdb, error) {
 	params := url.Values{
 		"apikey": {configuration.Get().OmdbApiKey},
 		"s":      {title},
@@ -40,7 +40,7 @@ func (c *Omdb) Search(title string, contentType string, releaseYear string) ([]m
 	}
 	reqUrl := fmt.Sprintf("?%s", params.Encode())
 	ctx := context.Background()
-	response, err := c.Client.Get(ctx, reqUrl)
+	response, err := oc.client.Get(ctx, reqUrl)
 
 	if err != nil {
 		return nil, err

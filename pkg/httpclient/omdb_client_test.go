@@ -1,4 +1,4 @@
-package httpclient_test
+package httpclient
 
 import (
 	"bytes"
@@ -7,26 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/thomasgormley/unified-search-gateway/pkg/httpclient"
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
 )
-
-// For stubbing
-type RoundTripperFunc func(*http.Request) (*http.Response, error)
-
-func (fn RoundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return fn(r)
-}
-
-var mockOmdbClient = httpclient.OmdbClient{
-	HttpClient: &http.Client{
-		Transport: RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
-			// Assert on request attributes
-			// Return a response or error you want
-			return &http.Response{}, nil
-		}),
-	},
-}
 
 type testCase struct {
 	name         string
@@ -113,8 +95,8 @@ func TestOmdbSearch(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 
-			mockClient := httpclient.Omdb{
-				Client: httpclient.New("https://www.omdbapi.com", httpclient.WithCustomHttpClient(&http.Client{
+			mockClient := Omdb{
+				client: New("https://www.omdbapi.com", WithCustomHttpClient(&http.Client{
 					Transport: RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
 						return tc.mockResponse, nil
 					}),
