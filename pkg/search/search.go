@@ -5,45 +5,46 @@ import (
 	"log"
 )
 
-// FilterCriteria is an interface that defines the behavior of filter criteria used in search operations.
-// Implementations of this interface must provide a Validate method that validates the filter criteria.
-type FilterCriteria interface {
-	Validate() error
-}
+type ( // FilterCriteria is an interface that defines the behavior of filter criteria used in search operations.
+	// Implementations of this interface must provide a Validate method that validates the filter criteria.
+	FilterCriteria interface {
+		Validate() error
+	}
 
-// ResultSet is a generic struct that represents the result set of a search operation.
-// It contains a slice of data of type T and a string representing the type of the data.
-type ResultSet[T any] struct {
-	Data []T    `json:"data"`
-	Type string `json:"type"`
-}
+	// ResultSet is a generic struct that represents the result set of a search operation.
+	// It contains a slice of data of type T and a string representing the type of the data.
+	ResultSet[T any] struct {
+		Data []T    `json:"data"`
+		Type string `json:"type"`
+	}
 
-// Identifiable is an interface that represents a resource that can be searched.
-// Implementations of this interface must provide a GetType method that returns the type of the resource.
-type Identifiable interface {
-	GetType() string
-}
+	// Identifiable is an interface that represents a resource that can be searched.
+	// Implementations of this interface must provide a GetType method that returns the type of the resource.
+	Identifiable interface {
+		GetType() string
+	}
 
-// SearchOptions is a struct that represents the options passed to a search function.
-// It contains the search query, page number, items per page, and filter criteria.
-type SearchOptions[F FilterCriteria] struct {
-	Query   string
-	Page    int
-	PerPage int
-	Filters F
-}
+	// SearchOptions is a struct that represents the options passed to a search function.
+	// It contains the search query, page number, items per page, and filter criteria.
+	SearchOptions[F FilterCriteria] struct {
+		Query   string
+		Page    int
+		PerPage int
+		Filters F
+	}
 
-// Queryer is an interface that represents a search query.
-// Implementations of this interface must provide a Query method that performs the search query and returns the result.
-type Queryer[QueryR Identifiable] interface {
-	Query() (QueryR, error)
-}
+	// Queryer is an interface that represents a search query.
+	// Implementations of this interface must provide a Query method that performs the search query and returns the result.
+	Queryer[QueryR Identifiable] interface {
+		Query() (QueryR, error)
+	}
 
-// SearchService is a struct that represents a search service.
-// It contains a list of queryers that can be used to perform search queries.
-type SearchService[R Identifiable] struct {
-	Queriers []Queryer[R]
-}
+	// SearchService is a struct that represents a search service.
+	// It contains a list of queryers that can be used to perform search queries.
+	SearchService[R Identifiable] struct {
+		Queriers []Queryer[R]
+	}
+)
 
 func (qr ResultSet[T]) GetType() string {
 	return qr.Type
