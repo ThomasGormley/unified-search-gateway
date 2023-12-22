@@ -1,12 +1,12 @@
 package httpclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/thomasgormley/unified-search-gateway/internal/configuration"
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
@@ -17,72 +17,45 @@ type OmdbClient struct {
 	BaseUrl    string
 }
 
-// For stubbing
-type RoundTripperFunc func(*http.Request) (*http.Response, error)
-
-func (fn RoundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return fn(r)
+type Omdb struct {
+	Client *Client
 }
 
-var mockOmdbClient = OmdbClient{
-	HttpClient: &http.Client{
-		Transport: RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
-			// Assert on request attributes
-			// Return a response or error you want
-			return &http.Response{}, nil
-		}),
-	},
+func NewOmdb() *Omdb {
+
+	httpClient := New("https://www.omdbapi.com", WithTimeout(10*time.Second))
+	return &Omdb{Client: httpClient}
 }
 
-func NewOmdb() OmdbClient {
-
-	httpClient := &http.Client{Timeout: DEFAULT_TIMEOUT}
-	return OmdbClient{
-		HttpClient: httpClient,
-		BaseUrl:    "https://www.omdbapi.com",
-	}
-}
-
-type searchResponse struct {
+type SearchResponse struct {
 	Search []models.Omdb `json:"Search"`
 }
 
-func (client *OmdbClient) Search(title string, contentType string, releaseYear string) ([]models.Omdb, error) {
+func (c *Omdb) Search(title string, contentType string, releaseYear string) ([]models.Omdb, error) {
 	params := url.Values{
 		"apikey": {configuration.Get().OmdbApiKey},
 		"s":      {title},
 		"type":   {contentType},
 		"y":      {releaseYear},
 	}
-	reqUrl := fmt.Sprintf("%s?%s", client.BaseUrl, params.Encode())
-	slog.Info("OMDB API", "URL", reqUrl)
-	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := client.HttpClient.Do(req)
+	reqUrl := fmt.Sprintf("?%s", params.Encode())
+	ctx := context.Background()
+	response, err := c.Client.Get(ctx, reqUrl)
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	res := response.res
 
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("status: %d, mod: %d", resp.StatusCode, resp.StatusCode/100)
-	switch resp.StatusCode / 100 {
+	switch res.StatusCode / 100 {
 	case 4, 5:
-		return nil, fmt.Errorf("HTTP error: %s", resp.Status)
+		return nil, fmt.Errorf("HTTP error: %s", res.Status)
 	}
 
-	var omdbRespJson searchResponse
+	var omdbRespJson SearchResponse
 
-	if err := json.Unmarshal(body, &omdbRespJson); err != nil {
+	if err := json.Unmarshal(response.body, &omdbRespJson); err != nil {
 		return nil, err
 	}
 

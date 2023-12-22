@@ -67,3 +67,10 @@ func (c Client) Get(ctx context.Context, path string) (*Response, error) {
 	return &Response{res: res, body: body}, nil
 
 }
+
+// Stub RoundTripper in tests
+type RoundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (fn RoundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return fn(r)
+}

@@ -38,14 +38,72 @@ type testCase struct {
 	expectError  bool           // Whether an error is expected
 }
 
+var (
+	errorResponse       = `{"error": "not found"}`
+	successResponseJson = `{
+						"Search": [
+						{
+							"Title": "The Good, the Bad and the Ugly",
+							"Year": "1966",
+							"Rated": "",
+							"Released": "",
+							"Runtime": "",
+							"Genre": "",
+							"Director": "",
+							"Writer": "",
+							"Actors": "",
+							"Plot": "",
+							"Language": "",
+							"Country": "",
+							"Awards": "",
+							"Poster": "https://m.media-amazon.com/images/M/MV5BNjJlYmNkZGItM2NhYy00MjlmLTk5NmQtNjg1NmM2ODU4OTMwXkEyXkFqcGdeQXVyMjUzOTY1NTc@._V1_SX300.jpg",
+							"Ratings": null,
+							"Metascore": "",
+							"imdbRating": "",
+							"imdbVotes": "",
+							"imdbID": "tt0060196",
+							"Type": "movie",
+							"DVD": "",
+							"BoxOffice": "",
+							"Production": "",
+							"Website": "",
+							"Response": ""
+						}]
+						}`
+)
+
 func TestOmdbSearch(t *testing.T) {
 
 	tests := []testCase{
 		{
+			name: "returns search result",
+			mockResponse: &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(bytes.NewBufferString(successResponseJson)),
+			},
+			expected: []models.Omdb{{
+				Title:  "The Good, the Bad and the Ugly",
+				Year:   "1966",
+				ImdbID: "tt0060196",
+				Type:   "movie",
+				Poster: "https://m.media-amazon.com/images/M/MV5BNjJlYmNkZGItM2NhYy00MjlmLTk5NmQtNjg1NmM2ODU4OTMwXkEyXkFqcGdeQXVyMjUzOTY1NTc@._V1_SX300.jpg",
+			}},
+			expectError: false,
+		},
+		{
 			name: "Errors on 4xx",
 			mockResponse: &http.Response{
 				StatusCode: 400,
-				Body:       io.NopCloser(bytes.NewBufferString(`{"error": "not found"}`)),
+				Body:       io.NopCloser(bytes.NewBufferString(errorResponse)),
+			},
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name: "Errors on 5xx",
+			mockResponse: &http.Response{
+				StatusCode: 500,
+				Body:       io.NopCloser(bytes.NewBufferString(errorResponse)),
 			},
 			expected:    nil,
 			expectError: true,
@@ -55,12 +113,12 @@ func TestOmdbSearch(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 
-			mockClient := httpclient.OmdbClient{
-				HttpClient: &http.Client{
+			mockClient := httpclient.Omdb{
+				Client: httpclient.New("https://www.omdbapi.com", httpclient.WithCustomHttpClient(&http.Client{
 					Transport: RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
 						return tc.mockResponse, nil
 					}),
-				},
+				})),
 			}
 
 			result, err := mockClient.Search(tc.title, tc.contentType, tc.releaseYear)
