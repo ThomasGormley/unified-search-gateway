@@ -3,6 +3,7 @@ package search
 import (
 	"errors"
 	"log"
+	"strconv"
 )
 
 type (
@@ -45,7 +46,18 @@ func (qr ResultSet[T]) GetType() string {
 	return qr.Type
 }
 
-func NewSearchOptions[F FilterCriteria](query string, page, perPage int, filters F) (*SearchOptions[F], error) {
+func NewSearchOptions[F FilterCriteria](query string, p, pPage string, filters F) (*SearchOptions[F], error) {
+	// convert page and perPage to int
+	page, err := strconv.Atoi(p)
+	if err != nil {
+		return nil, err
+	}
+
+	perPage, err := strconv.Atoi(pPage)
+	if err != nil {
+		return nil, err
+	}
+
 	// Set default values for page and perPage if they are not within specific ranges
 	if page < 0 {
 		page = 0
@@ -61,7 +73,7 @@ func NewSearchOptions[F FilterCriteria](query string, page, perPage int, filters
 		Filters: filters,
 	}
 
-	err := opts.Validate()
+	err = opts.Validate()
 
 	if err != nil {
 		return nil, err

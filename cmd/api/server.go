@@ -46,7 +46,7 @@ func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Handling Unified Search", "Query", r.URL.Query())
 	q := r.URL.Query()
 
-	omdbSearchOptions, err := search.NewSearchOptions(q.Get("q"), 1, 10, search.OmdbFilters{})
+	omdbSearchOptions, err := search.NewSearchOptions(q.Get("q"), q.Get("page"), q.Get("perPage"), search.OmdbFilters{})
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -56,7 +56,7 @@ func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
 		SearchOptions: *omdbSearchOptions,
 	}
 
-	postSearchOptions, err := search.NewSearchOptions(q.Get("q"), 1, 10, search.PostFilters{})
+	postSearchOptions, err := search.NewSearchOptions(q.Get("q"), q.Get("page"), q.Get("perPage"), search.PostFilters{})
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
@@ -93,7 +93,7 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 		Y:    q.Get("year"),
 	}
 
-	omdbSearchOpts, err := search.NewSearchOptions(q.Get("q"), 1, 10, omdbFilters)
+	omdbSearchOpts, err := search.NewSearchOptions(q.Get("q"), q.Get("page"), q.Get("perPage"), omdbFilters)
 
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
