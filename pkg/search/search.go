@@ -3,7 +3,6 @@ package search
 import (
 	"errors"
 	"log"
-	"strconv"
 	"sync"
 )
 
@@ -14,19 +13,18 @@ type (
 		Validate() error
 	}
 
-	// ResultSet is a generic struct that represents the result set of a search operation.
+	// SearchResult is a generic struct that represents the result set of a search operation.
 	// It contains a slice of data of type T and a string representing the type of the data.
-	ResultSet[T any] struct {
-		Data  []T     `json:"data"`
-		Error *string `json:"error"`
-		Type  string  `json:"type"`
+	SearchResult[T any] struct {
+		Data  []T    `json:"data"`
+		Error string `json:"error"`
+		Type  string `json:"type"`
 	}
 
 	// SearchItem is an interface that represents a resource that can be searched.
 	// Implementations of this interface must provide a GetType method that returns the type of the resource.
 	SearchItem interface {
 		GetType() string
-		GetError() *string
 	}
 
 	// SearchOptions is a struct that represents the options passed to a search function.
@@ -39,38 +37,11 @@ type (
 	}
 )
 
-func (qr ResultSet[T]) GetType() string {
+func (qr SearchResult[T]) GetType() string {
 	return qr.Type
 }
 
-func (qr ResultSet[T]) GetError() *string {
-	log.Printf("GetError: %+v", qr.Error)
-	if qr.Error == nil {
-		log.Printf("Returning nil")
-		return nil
-	}
-	return qr.Error
-}
-
-func NewSearchOptions[F FilterCriteria](query string, p, pPage string, filters F) (*SearchOptions[F], error) {
-	// convert page and perPage to int
-	page := 0
-	if p != "" {
-		var err error
-		page, err = strconv.Atoi(p)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	perPage := 10
-	if pPage != "" {
-		var err error
-		perPage, err = strconv.Atoi(pPage)
-		if err != nil {
-			return nil, err
-		}
-	}
+func NewSearchOptions[F FilterCriteria](query string, page, perPage int, filters F) (*SearchOptions[F], error) {
 
 	// Set default values for page and perPage if they are not within specific ranges
 	if page < 0 {

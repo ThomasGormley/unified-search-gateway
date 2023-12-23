@@ -28,7 +28,7 @@ func PostQuery(searchOptions SearchOptions[PostFilters]) SearchItem {
 	d := time.Duration(rand.Intn(2))
 	time.Sleep(d * time.Second)
 
-	return ResultSet[models.Post]{
+	return SearchResult[models.Post]{
 		Data: []models.Post{},
 		Type: "post",
 	}

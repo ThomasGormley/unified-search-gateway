@@ -42,14 +42,13 @@ func OmdbQuery(searchOptions SearchOptions[OmdbFilters]) SearchItem {
 	resp, err := omdbClient.Search(searchOptions.Query, searchOptions.Filters.Type, searchOptions.Filters.Y)
 
 	if err != nil {
-		err := fmt.Errorf("error: %s", err.Error()).Error()
-		return ResultSet[models.Omdb]{
-			Error: &err,
+		return SearchResult[models.Omdb]{
+			Error: err.Error(),
 			Type:  "omdb",
 		}
 	}
 
-	return ResultSet[models.Omdb]{
+	return SearchResult[models.Omdb]{
 		Data: resp,
 		Type: "omdb",
 	}
