@@ -5,26 +5,42 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/thomasgormley/unified-search-gateway/internal/configuration"
 	"github.com/thomasgormley/unified-search-gateway/pkg/search"
 )
 
-func Start() {
+type Server struct {
+	router *http.ServeMux
+}
+
+func NewServer() *Server {
+	s := &Server{
+		router: http.NewServeMux(),
+	}
+	s.routes()
+	return s
+}
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(w, r)
+}
+
+func (s *Server) routes() {
+	s.router.HandleFunc("/api/search", s.handleUnifiedSearch())
+	s.router.HandleFunc("/api/search/omdb", s.handleOmdbSearch())
+}
+
+func Start() error {
 	configuration.Load()
-	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/search", handleUnifiedSearch)
-	mux.HandleFunc("/api/search/omdb", handleOmdbSearch)
-
+	s := NewServer()
 	addr := "localhost:8080" // e.g., "localhost:8080" for local development
 
 	// Start the server
 	log.Printf("Starting server on %s", addr)
-	err := http.ListenAndServe(addr, mux)
-	if err != nil {
-		log.Fatalf("Could not start server: %s", err)
-	}
+	return http.ListenAndServe(addr, s)
 }
 
 type ErrorResponse struct {
@@ -42,67 +58,103 @@ func sendInternalServerError(w http.ResponseWriter) {
 	sendError(w, http.StatusInternalServerError, "Something went wrong.")
 }
 
-func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Handling Unified Search", "Query", r.URL.Query())
-	q := r.URL.Query()
+func (s *Server) handleUnifiedSearch() http.HandlerFunc {
 
-	query, page, perPage := q.Get("q"), q.Get("page"), q.Get("perPage")
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Handling Unified Search", "Query", r.URL.Query())
+		q := r.URL.Query()
 
-	omdbSearchOptions, err := search.NewSearchOptions(query, page, perPage, search.OmdbFilters{})
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
+		query := q.Get("q")
+
+		page, err := convertToInt(q.Get("page"))
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		perPage, err := convertToInt(q.Get("perPage"))
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		omdbSearchOptions, err := search.NewSearchOptions(query, page, perPage, search.OmdbFilters{})
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		postSearchOptions, err := search.NewSearchOptions(query, page, perPage, search.PostFilters{})
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		omdbQueryFn := search.QueryFnFrom(search.OmdbQuery, *omdbSearchOptions)
+		postQueryFn := search.QueryFnFrom(search.PostQuery, *postSearchOptions)
+
+		unifiedSearchRes := search.HandleSearch(omdbQueryFn, postQueryFn)
+
+		unifiedSearchJson, err := json.Marshal(unifiedSearchRes)
+
+		if err != nil {
+			log.Printf("Error: %+v", err)
+			sendInternalServerError(w)
+			return
+		}
+
+		w.Write(unifiedSearchJson)
 	}
-
-	postSearchOptions, err := search.NewSearchOptions(query, page, perPage, search.PostFilters{})
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
+}
+func convertToInt(s string) (int, error) {
+	if s == "" {
+		return 0, nil
 	}
-
-	omdbQueryFn := search.QueryFnFrom(search.OmdbQuery, *omdbSearchOptions)
-	postQueryFn := search.QueryFnFrom(search.PostQuery, *postSearchOptions)
-
-	unifiedSearchRes := search.HandleSearch(omdbQueryFn, postQueryFn)
-
-	unifiedSearchJson, err := json.Marshal(unifiedSearchRes)
-
-	if err != nil {
-		log.Printf("Error: %+v", err)
-		sendInternalServerError(w)
-		return
-	}
-
-	w.Write(unifiedSearchJson)
+	return strconv.Atoi(s)
 }
 
-func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Handling OMDB Search", "Query", r.URL.Query())
-	q := r.URL.Query()
+func (s *Server) handleOmdbSearch() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Handling OMDB Search", "Query", r.URL.Query())
+		q := r.URL.Query()
 
-	omdbFilters := search.OmdbFilters{
-		Type: q.Get("type"),
-		Y:    q.Get("year"),
+		omdbFilters := search.OmdbFilters{
+			Type: q.Get("type"),
+			Y:    q.Get("year"),
+		}
+
+		page, err := convertToInt(q.Get("page"))
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		perPage, err := convertToInt(q.Get("perPage"))
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		omdbSearchOpts, err := search.NewSearchOptions(q.Get("q"), page, perPage, omdbFilters)
+
+		if err != nil {
+			sendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		omdbQueryer := search.QueryFnFrom(search.OmdbQuery, *omdbSearchOpts)
+		omdbSearchRes := search.HandleSearch(omdbQueryer)
+
+		postSearchJson, err := json.Marshal(omdbSearchRes)
+
+		if err != nil {
+			slog.Error("Error marshalling.", "err", err)
+			sendInternalServerError(w)
+			return
+		}
+
+		w.Write(postSearchJson)
 	}
-	omdbSearchOpts, err := search.NewSearchOptions(q.Get("q"), q.Get("page"), q.Get("perPage"), omdbFilters)
-
-	if err != nil {
-		sendError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	omdbQueryer := search.QueryFnFrom(search.OmdbQuery, *omdbSearchOpts)
-	omdbSearchRes := search.HandleSearch(omdbQueryer)
-
-	postSearchJson, err := json.Marshal(omdbSearchRes)
-
-	if err != nil {
-		slog.Error("Error marshalling.", "err", err)
-		sendInternalServerError(w)
-		return
-	}
-
-	w.Write(postSearchJson)
 }
 
 // func handleApi(w http.ResponseWriter, r *http.Request) {

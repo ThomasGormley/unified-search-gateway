@@ -1,7 +1,13 @@
 package main
 
-import "github.com/thomasgormley/unified-search-gateway/cmd/api"
+import (
+	"log"
+
+	"github.com/thomasgormley/unified-search-gateway/cmd/api"
+)
 
 func main() {
-	api.Start()
+	if e := api.Start(); e != nil {
+		log.Fatalf("failed to start server: %v", e)
+	}
 }
