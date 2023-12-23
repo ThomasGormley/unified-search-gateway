@@ -17,14 +17,16 @@ type (
 	// ResultSet is a generic struct that represents the result set of a search operation.
 	// It contains a slice of data of type T and a string representing the type of the data.
 	ResultSet[T any] struct {
-		Data []T    `json:"data"`
-		Type string `json:"type"`
+		Data  []T     `json:"data"`
+		Error *string `json:"error"`
+		Type  string  `json:"type"`
 	}
 
 	// SearchItem is an interface that represents a resource that can be searched.
 	// Implementations of this interface must provide a GetType method that returns the type of the resource.
 	SearchItem interface {
 		GetType() string
+		GetError() *string
 	}
 
 	// SearchOptions is a struct that represents the options passed to a search function.
@@ -38,13 +40,22 @@ type (
 
 	// Queryer is an interface that represents a search query.
 	// Implementations of this interface must provide a Query method that performs the search query and returns the result.
-	Queryer[Return SearchItem] interface {
-		Query() (Return, error)
+	Queryer interface {
+		Query() SearchItem
 	}
 )
 
 func (qr ResultSet[T]) GetType() string {
 	return qr.Type
+}
+
+func (qr ResultSet[T]) GetError() *string {
+	log.Printf("GetError: %+v", qr.Error)
+	if qr.Error == nil {
+		log.Printf("Returning nil")
+		return nil
+	}
+	return qr.Error
 }
 
 func NewSearchOptions[F FilterCriteria](query string, p, pPage string, filters F) (*SearchOptions[F], error) {
@@ -91,6 +102,12 @@ func NewSearchOptions[F FilterCriteria](query string, p, pPage string, filters F
 	return opts, nil
 }
 
+type NoopFilter struct{}
+
+func (noop NoopFilter) Validate() error {
+	return nil
+}
+
 func (opts SearchOptions[F]) Validate() error {
 	log.Printf("Validating options\n")
 	// some pattern for collecting all the errors to send back to client as 400
@@ -108,22 +125,19 @@ func (opts SearchOptions[F]) Validate() error {
 	return nil
 }
 
-func HandleSearch[R SearchItem](qs ...Queryer[R]) ([]R, error) {
-	resultsChan := make(chan *R)
-	errChan := make(chan error)
+type QueryFunc func() SearchItem
+
+func HandleSearch(qs ...QueryFunc) []SearchItem {
+	resultsChan := make(chan *SearchItem)
 	var wg sync.WaitGroup
 
 	for _, queryer := range qs {
 		wg.Add(1)
-		go func(q Queryer[R]) {
+		go func(q QueryFunc) {
 			defer wg.Done()
-			data, err := q.Query()
-			if err != nil {
-				errChan <- err
-				resultsChan <- nil // Send nil for failed query
-			} else {
-				resultsChan <- &data
-			}
+			data := q()
+
+			resultsChan <- &data
 		}(queryer)
 	}
 
@@ -131,35 +145,25 @@ func HandleSearch[R SearchItem](qs ...Queryer[R]) ([]R, error) {
 	go func() {
 		wg.Wait()
 		close(resultsChan)
-		close(errChan)
 	}()
 
-	var aggregatedData []R
-	var errors []error
-	for {
-		select {
-		case data, ok := <-resultsChan:
-			if !ok {
-				resultsChan = nil
-			} else if data != nil {
-				aggregatedData = append(aggregatedData, *data)
-			}
-		case err, ok := <-errChan:
-			if !ok {
-				errChan = nil
-			} else {
-				errors = append(errors, err)
-			}
-		}
-		if resultsChan == nil && errChan == nil {
-			break
+	var aggregatedData []SearchItem
+	for data := range resultsChan {
+		if data != nil {
+			aggregatedData = append(aggregatedData, *data)
 		}
 	}
 
 	// Handle the case where all queries failed
-	if len(aggregatedData) == 0 && len(errors) > 0 {
-		return nil, errors[0] // or aggregate errors as needed
+	if len(aggregatedData) == 0 {
+		return nil // or aggregate errors as needed
 	}
 
-	return aggregatedData, nil
+	return aggregatedData
+}
+
+func QueryFnFrom[F FilterCriteria](fn func(opts SearchOptions[F]) SearchItem, opts SearchOptions[F]) func() SearchItem {
+	return func() SearchItem {
+		return fn(opts)
+	}
 }

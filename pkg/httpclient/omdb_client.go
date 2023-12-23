@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/thomasgormley/unified-search-gateway/internal/configuration"
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
@@ -23,7 +23,7 @@ type Omdb struct {
 
 func NewOmdb() *Omdb {
 
-	httpClient := New("https://www.omdbapi.com", WithTimeout(10*time.Second))
+	httpClient := New("https://www.omdbapi.com")
 	return &Omdb{client: httpClient}
 }
 
@@ -43,6 +43,7 @@ func (oc *Omdb) Search(title string, contentType string, releaseYear string) ([]
 	response, err := oc.client.Get(ctx, reqUrl)
 
 	if err != nil {
+		log.Printf("Error: %s", err.Error())
 		return nil, err
 	}
 

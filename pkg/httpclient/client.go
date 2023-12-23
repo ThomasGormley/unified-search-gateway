@@ -53,6 +53,11 @@ func (c Client) Get(ctx context.Context, path string) (*Response, error) {
 
 	res, err := c.httpClient.Do(req.WithContext(reqCtx))
 
+	log.Printf("Context error: %s", reqCtx.Err())
+	if err := reqCtx.Err(); err != nil {
+		return nil, err
+	}
+
 	if err != nil {
 		return nil, err
 	}

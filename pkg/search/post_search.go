@@ -1,6 +1,9 @@
 package search
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
 )
 
@@ -22,15 +25,13 @@ func (pf PostFilters) Validate() error {
 	return nil
 }
 
-type PostQueryer struct {
-	SearchOptions[PostFilters]
-}
-
-func (pq PostQueryer) Query() (SearchItem, error) {
+func PostQuery(searchOptions SearchOptions[PostFilters]) SearchItem {
 	// http request
+	d := time.Duration(rand.Intn(2))
+	time.Sleep(d * time.Second)
+
 	return ResultSet[models.Post]{
 		Data: []models.Post{},
 		Type: "post",
-	}, nil
-
+	}
 }

@@ -46,27 +46,26 @@ func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Handling Unified Search", "Query", r.URL.Query())
 	q := r.URL.Query()
 
-	omdbSearchOptions, err := search.NewSearchOptions(q.Get("q"), q.Get("page"), q.Get("perPage"), search.OmdbFilters{})
+	query, page, perPage := q.Get("q"), q.Get("page"), q.Get("perPage")
+
+	omdbSearchOptions, err := search.NewSearchOptions(query, page, perPage, search.OmdbFilters{})
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	omdbQueryer := search.OmdbQueryer{
-		SearchOptions: *omdbSearchOptions,
-	}
-
-	postSearchOptions, err := search.NewSearchOptions(q.Get("q"), q.Get("page"), q.Get("perPage"), search.PostFilters{})
+	postSearchOptions, err := search.NewSearchOptions(query, page, perPage, search.PostFilters{})
 	if err != nil {
 		sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	postQueryer := search.PostQueryer{
-		SearchOptions: *postSearchOptions,
-	}
+	omdbQueryFn := search.QueryFnFrom(search.OmdbQuery, *omdbSearchOptions)
+	postQueryFn := search.QueryFnFrom(search.PostQuery, *postSearchOptions)
 
-	unifiedSearchRes, err := search.HandleSearch(omdbQueryer, postQueryer)
+	unifiedSearchRes := search.HandleSearch(omdbQueryFn, postQueryFn)
+
+	unifiedSearchJson, err := json.Marshal(unifiedSearchRes)
 
 	if err != nil {
 		log.Printf("Error: %+v", err)
@@ -74,25 +73,17 @@ func handleUnifiedSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postSearchJson, err := json.Marshal(unifiedSearchRes)
-
-	if err != nil {
-		log.Printf("Error: %+v", err)
-		sendInternalServerError(w)
-		return
-	}
-
-	w.Write(postSearchJson)
+	w.Write(unifiedSearchJson)
 }
 
 func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Handling OMDB Search", "Query", r.URL.Query())
 	q := r.URL.Query()
+
 	omdbFilters := search.OmdbFilters{
 		Type: q.Get("type"),
 		Y:    q.Get("year"),
 	}
-
 	omdbSearchOpts, err := search.NewSearchOptions(q.Get("q"), q.Get("page"), q.Get("perPage"), omdbFilters)
 
 	if err != nil {
@@ -100,17 +91,8 @@ func handleOmdbSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	omdbQueryer := search.OmdbQueryer{
-		SearchOptions: *omdbSearchOpts,
-	}
-
-	omdbSearchRes, err := search.HandleSearch(omdbQueryer)
-
-	if err != nil {
-		log.Printf("Error: %+v", err)
-		sendInternalServerError(w)
-		return
-	}
+	omdbQueryer := search.QueryFnFrom(search.OmdbQuery, *omdbSearchOpts)
+	omdbSearchRes := search.HandleSearch(omdbQueryer)
 
 	postSearchJson, err := json.Marshal(omdbSearchRes)
 
