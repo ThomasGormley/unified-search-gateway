@@ -7,8 +7,6 @@ import (
 	"github.com/thomasgormley/unified-search-gateway/pkg/models"
 )
 
-// func NewPostFilters()
-
 type PostFilters struct {
 	Author      string
 	Topics      []string

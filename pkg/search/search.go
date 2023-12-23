@@ -37,12 +37,6 @@ type (
 		PerPage int
 		Filters F
 	}
-
-	// Queryer is an interface that represents a search query.
-	// Implementations of this interface must provide a Query method that performs the search query and returns the result.
-	Queryer interface {
-		Query() SearchItem
-	}
 )
 
 func (qr ResultSet[T]) GetType() string {
@@ -127,18 +121,18 @@ func (opts SearchOptions[F]) Validate() error {
 
 type QueryFunc func() SearchItem
 
-func HandleSearch(qs ...QueryFunc) []SearchItem {
+func HandleSearch(queryFns ...QueryFunc) []SearchItem {
 	resultsChan := make(chan *SearchItem)
 	var wg sync.WaitGroup
 
-	for _, queryer := range qs {
+	for _, query := range queryFns {
 		wg.Add(1)
 		go func(q QueryFunc) {
 			defer wg.Done()
 			data := q()
 
 			resultsChan <- &data
-		}(queryer)
+		}(query)
 	}
 
 	// Close channels when all goroutines are done
